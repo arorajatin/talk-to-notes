@@ -27,29 +27,42 @@ class NotesSync {
             this.hideModal('progress-modal')
         })
 
-        document.getElementById('success-ok-btn').addEventListener('click', () => {
-            this.hideModal('success-modal')
-        })
+        document
+            .getElementById('success-ok-btn')
+            .addEventListener('click', () => {
+                this.hideModal('success-modal')
+            })
 
-        document.getElementById('start-chat-btn').addEventListener('click', () => {
-            this.hideModal('success-modal')
+        document
+            .getElementById('start-chat-btn')
+            .addEventListener('click', () => {
+                this.hideModal('success-modal')
+                this.showChatInterface()
+            })
+
+        // Main chat button in header
+        document.getElementById('chat-btn').addEventListener('click', () => {
             this.showChatInterface()
         })
 
         // Chat interface events
-        document.getElementById('chat-back-btn').addEventListener('click', () => {
-            this.hideChatInterface()
-        })
+        document
+            .getElementById('chat-back-btn')
+            .addEventListener('click', () => {
+                this.hideChatInterface()
+            })
 
         document.getElementById('send-btn').addEventListener('click', () => {
             this.sendMessage()
         })
 
-        document.getElementById('chat-input').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                this.sendMessage()
-            }
-        })
+        document
+            .getElementById('chat-input')
+            .addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    this.sendMessage()
+                }
+            })
 
         // Progress updates
         window.electronAPI.onSyncProgress((message) => {
@@ -63,7 +76,7 @@ class NotesSync {
 
         try {
             const result = await window.electronAPI.getFolders()
-            
+
             if (result.success) {
                 this.folders = result.folders.sort((a, b) => a.count - b.count)
                 this.renderFolders()
@@ -78,7 +91,7 @@ class NotesSync {
         }
     }
 
-    renderFolders() {
+    async renderFolders() {
         const folderList = document.getElementById('folder-list')
         folderList.innerHTML = ''
 
@@ -87,13 +100,22 @@ class NotesSync {
             return
         }
 
-        this.folders.forEach(folder => {
-            const folderItem = this.createFolderItem(folder)
-            folderList.appendChild(folderItem)
-        })
+        for (const folder of this.folders) {
+            const hasCache = await this.checkForCachedNotes(folder.name)
+            const folderItem = this.createFolderItem(folder, hasCache)
+            folderItem && folderList.appendChild(folderItem)
+        }
     }
 
-    createFolderItem(folder) {
+    getChatButtonIdForFolderId(id) {
+        return 'chat-btn' + '-' + id
+    }
+
+    createFolderItem(folder, hasCache) {
+        if (folder.count < 1) {
+            return null
+        }
+
         const item = document.createElement('div')
         item.className = 'folder-item'
         item.dataset.folderId = folder.id
@@ -111,10 +133,15 @@ class NotesSync {
                     ${sizeLabel ? `<span class="folder-size ${sizeLabel.class}">${sizeLabel.text}</span>` : ''}
                 </div>
             </div>
+            <div class="folder-actions">
+            <button class="${hasCache && folder.count > 0 ? 'chat-btn' : 'chat-btn hide-element'}" id="${this.getChatButtonIdForFolderId(folder.id)}">
+                <span>💬 Chat</span>
+            </button>
             <button class="sync-btn" data-folder-name="${folder.name}">
                 <span>📥</span>
                 Sync
             </button>
+            </div>
         `
 
         // Add click handlers
@@ -129,6 +156,13 @@ class NotesSync {
             e.stopPropagation()
             this.syncFolder(folder)
         })
+
+        for (const chatBtn of item.querySelectorAll('.chat-btn')) {
+            chatBtn.addEventListener('click', (e) => {
+                e.stopPropagation()
+                this.showChatInterface()
+            })
+        }
 
         return item
     }
@@ -147,17 +181,27 @@ class NotesSync {
 
     selectFolder(folder) {
         // Remove previous selection
-        document.querySelectorAll('.folder-item').forEach(item => {
+        document.querySelectorAll('.folder-item').forEach((item) => {
             item.classList.remove('selected')
         })
 
         // Add selection to current folder
-        const folderItem = document.querySelector(`[data-folder-id="${folder.id}"]`)
+        const folderItem = document.querySelector(
+            `[data-folder-id="${folder.id}"]`
+        )
         if (folderItem) {
             folderItem.classList.add('selected')
         }
 
         this.selectedFolder = folder
+    }
+
+    enableSyncForFolder(folder) {
+        const chatBtnId = this.getChatButtonIdForFolderId(folder.id)
+        const chatBtn = document.getElementById(chatBtnId)
+        if (chatBtn) {
+            chatBtn.classList.remove('hide-element')
+        }
     }
 
     async syncFolder(folder) {
@@ -167,10 +211,13 @@ class NotesSync {
 
         try {
             const result = await window.electronAPI.syncFolder(folder.name)
-            
+
             if (result.success) {
                 this.hideModal('progress-modal')
-                this.showSuccess(`Successfully synced ${result.count} notes from "${folder.name}"`)
+                this.showSuccess(
+                    `Successfully synced ${result.count} notes from "${folder.name}"`
+                )
+                this.enableSyncForFolder(folder)
             } else {
                 this.hideModal('progress-modal')
                 this.showError(result.error)
@@ -199,9 +246,15 @@ class NotesSync {
     }
 
     showState(stateId) {
-        const states = ['loading-state', 'empty-state', 'error-state', 'folder-list']
-        states.forEach(state => {
-            document.getElementById(state).style.display = state === stateId ? 'flex' : 'none'
+        const states = [
+            'loading-state',
+            'empty-state',
+            'error-state',
+            'folder-list',
+        ]
+        states.forEach((state) => {
+            document.getElementById(state).style.display =
+                state === stateId ? 'flex' : 'none'
         })
     }
 
@@ -232,32 +285,34 @@ class NotesSync {
     async sendMessage() {
         const input = document.getElementById('chat-input')
         const message = input.value.trim()
-        
+
         if (!message) return
-        
+
         // Add user message
         this.addMessage(message, 'user')
         input.value = ''
-        
+
         // Add loading indicator
         const loadingId = this.addMessage('Thinking...', 'assistant', true)
-        
+
         try {
             // Send message to main process
             const response = await window.electronAPI.sendChatMessage(message)
-            
+
             // Remove loading indicator
             this.removeMessage(loadingId)
-            
+
             // Add assistant response
             this.addMessage(response, 'assistant')
-            
         } catch (error) {
             // Remove loading indicator
             this.removeMessage(loadingId)
-            
+
             // Add error message
-            this.addMessage('Sorry, I encountered an error. Please try again.', 'assistant')
+            this.addMessage(
+                'Sorry, I encountered an error. Please try again.',
+                'assistant'
+            )
             console.error('Chat error:', error)
         }
     }
@@ -265,24 +320,24 @@ class NotesSync {
     addMessage(text, sender, isLoading = false) {
         const messagesContainer = document.getElementById('chat-messages')
         const messageId = `msg-${Date.now()}`
-        
+
         const messageDiv = document.createElement('div')
         messageDiv.className = `chat-message ${sender}`
         messageDiv.id = messageId
-        
+
         const contentDiv = document.createElement('div')
         contentDiv.className = `message-content ${isLoading ? 'loading' : ''}`
-        
+
         const textP = document.createElement('p')
         textP.textContent = text
-        
+
         contentDiv.appendChild(textP)
         messageDiv.appendChild(contentDiv)
         messagesContainer.appendChild(messageDiv)
-        
+
         // Scroll to bottom
         messagesContainer.scrollTop = messagesContainer.scrollHeight
-        
+
         return messageId
     }
 
@@ -290,6 +345,18 @@ class NotesSync {
         const messageElement = document.getElementById(messageId)
         if (messageElement) {
             messageElement.remove()
+        }
+    }
+
+    // Check if any notes have been cached and show chat button
+    async checkForCachedNotes(folderName) {
+        try {
+            const hasCachedNotes =
+                await window.electronAPI.hasCachedNotes(folderName)
+            return hasCachedNotes
+        } catch (error) {
+            console.error('Error checking cached notes:', error)
+            return false
         }
     }
 }

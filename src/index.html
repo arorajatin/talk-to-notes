@@ -1,104 +1,138 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Notes Sync</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-    <div class="app">
-        <!-- Header -->
-        <header class="header">
-            <div class="header-content">
-                <div class="header-text">
-                    <h1>Notes Sync</h1>
-                    <p>Select a folder to sync your Apple Notes</p>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Notes Sync</title>
+        <link rel="stylesheet" href="styles.css" />
+    </head>
+    <body>
+        <div class="app">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-content">
+                    <div class="header-text">
+                        <h1>Notes Sync</h1>
+                        <p>Select a folder to sync your Apple Notes</p>
+                    </div>
+                    <div class="header-actions">
+                        <button
+                            id="refresh-btn"
+                            class="refresh-btn"
+                            title="Refresh folders"
+                        >
+                            <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 16 16"
+                                fill="currentColor"
+                            >
+                                <path
+                                    d="M8 0a8 8 0 1 1-8 8 8 8 0 0 1 8-8zM8 2a6 6 0 1 0 6 6 6 6 0 0 0-6-6zm0 10.5a1.5 1.5 0 1 1 1.5-1.5 1.5 1.5 0 0 1-1.5 1.5z"
+                                />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
-                <button id="refresh-btn" class="refresh-btn" title="Refresh folders">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                        <path d="M8 0a8 8 0 1 1-8 8 8 8 0 0 1 8-8zM8 2a6 6 0 1 0 6 6 6 6 0 0 0-6-6zm0 10.5a1.5 1.5 0 1 1 1.5-1.5 1.5 1.5 0 0 1-1.5 1.5z"/>
-                    </svg>
-                </button>
-            </div>
-        </header>
+            </header>
 
-        <!-- Main Content -->
-        <main class="main">
-            <div id="loading-state" class="loading-state">
-                <div class="spinner"></div>
-                <p>Loading folders...</p>
-            </div>
-
-            <div id="empty-state" class="empty-state" style="display: none;">
-                <div class="empty-icon">📁</div>
-                <h3>No folders found</h3>
-                <p>Make sure you have Apple Notes installed and configured</p>
-            </div>
-
-            <div id="error-state" class="error-state" style="display: none;">
-                <div class="error-icon">⚠️</div>
-                <h3>Error loading folders</h3>
-                <p id="error-message"></p>
-                <button id="retry-btn" class="retry-btn">Try Again</button>
-            </div>
-
-            <div id="folder-list" class="folder-list" style="display: none;">
-                <!-- Folders will be populated by JavaScript -->
-            </div>
-        </main>
-
-        <!-- Progress Modal -->
-        <div id="progress-modal" class="modal" style="display: none;">
-            <div class="modal-content">
-                <div class="progress-content">
+            <!-- Main Content -->
+            <main class="main">
+                <div id="loading-state" class="loading-state">
                     <div class="spinner"></div>
-                    <h3>Syncing Notes</h3>
-                    <p id="progress-text">Preparing to sync...</p>
-                    <button id="cancel-btn" class="cancel-btn">Cancel</button>
+                    <p>Loading folders...</p>
                 </div>
-            </div>
-        </div>
 
-        <!-- Success Modal -->
-        <div id="success-modal" class="modal" style="display: none;">
-            <div class="modal-content">
-                <div class="success-content">
-                    <div class="success-icon">✅</div>
-                    <h3>Sync Complete</h3>
-                    <p id="success-text">Successfully synced notes</p>
-                    <div class="success-actions">
-                        <button id="success-ok-btn" class="success-btn">OK</button>
-                        <button id="start-chat-btn" class="chat-btn">Start Chatting</button>
+                <div id="empty-state" class="empty-state" style="display: none">
+                    <div class="empty-icon">📁</div>
+                    <h3>No folders found</h3>
+                    <p>
+                        Make sure you have Apple Notes installed and configured
+                    </p>
+                </div>
+
+                <div id="error-state" class="error-state" style="display: none">
+                    <div class="error-icon">⚠️</div>
+                    <h3>Error loading folders</h3>
+                    <p id="error-message"></p>
+                    <button id="retry-btn" class="retry-btn">Try Again</button>
+                </div>
+
+                <div id="folder-list" class="folder-list" style="display: none">
+                    <!-- Folders will be populated by JavaScript -->
+                </div>
+            </main>
+
+            <!-- Progress Modal -->
+            <div id="progress-modal" class="modal" style="display: none">
+                <div class="modal-content">
+                    <div class="progress-content">
+                        <div class="spinner"></div>
+                        <h3>Syncing Notes</h3>
+                        <p id="progress-text">Preparing to sync...</p>
+                        <button id="cancel-btn" class="cancel-btn">
+                            Cancel
+                        </button>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Chat Interface -->
-        <div id="chat-interface" class="chat-interface" style="display: none;">
-            <div class="chat-header">
-                <h3>Chat with Your Notes</h3>
-                <div class="chat-actions">
-                    <button id="chat-back-btn" class="back-btn">← Back</button>
-                </div>
-            </div>
-            
-            <div class="chat-messages" id="chat-messages">
-                <div class="chat-message assistant">
-                    <div class="message-content">
-                        <p>Hi! I can help you find information from your synced notes. What would you like to know?</p>
+            <!-- Success Modal -->
+            <div id="success-modal" class="modal" style="display: none">
+                <div class="modal-content">
+                    <div class="success-content">
+                        <div class="success-icon">✅</div>
+                        <h3>Sync Complete</h3>
+                        <p id="success-text">Successfully synced notes</p>
+                        <div class="success-actions">
+                            <button id="success-ok-btn" class="success-btn">
+                                OK
+                            </button>
+                            <button id="start-chat-btn" class="chat-btn">
+                                Start Chatting
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
-            
-            <div class="chat-input-container">
-                <input type="text" id="chat-input" placeholder="Ask me anything about your notes..." />
-                <button id="send-btn" class="send-btn">Send</button>
+
+            <!-- Chat Interface -->
+            <div
+                id="chat-interface"
+                class="chat-interface"
+                style="display: none"
+            >
+                <div class="chat-header">
+                    <h3>Chat with Your Notes</h3>
+                    <div class="chat-actions">
+                        <button id="chat-back-btn" class="back-btn">
+                            ← Back
+                        </button>
+                    </div>
+                </div>
+
+                <div class="chat-messages" id="chat-messages">
+                    <div class="chat-message assistant">
+                        <div class="message-content">
+                            <p>
+                                Hi! I can help you find information from your
+                                synced notes. What would you like to know?
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-input-container">
+                    <input
+                        type="text"
+                        id="chat-input"
+                        placeholder="Ask me anything about your notes..."
+                    />
+                    <button id="send-btn" class="send-btn">Send</button>
+                </div>
             </div>
         </div>
-    </div>
 
-    <script src="renderer.js"></script>
-</body>
+        <script src="renderer.js"></script>
+    </body>
 </html>

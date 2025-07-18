@@ -9,49 +9,49 @@ const __dirname = path.dirname(__filename)
 let mainWindow = null
 
 function createWindow() {
-  mainWindow = new BrowserWindow({
-    width: 600,
-    height: 700,
-    webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js')
-    },
-    titleBarStyle: 'hiddenInset',
-    show: false
-  })
+    mainWindow = new BrowserWindow({
+        width: 1000,
+        height: 800,
+        webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true,
+            preload: path.join(__dirname, 'preload.js'),
+        },
+        titleBarStyle: 'hiddenInset',
+        show: false,
+    })
 
-  mainWindow.loadFile(path.join(__dirname, 'index.html'))
+    mainWindow.loadFile(path.join(__dirname, 'index.html'))
 
-  // Show window when ready to prevent visual flash
-  mainWindow.once('ready-to-show', () => {
-    mainWindow.show()
-  })
+    // Show window when ready to prevent visual flash
+    mainWindow.once('ready-to-show', () => {
+        mainWindow.show()
+    })
 
-  // Open DevTools in development
-  if (process.argv.includes('--dev')) {
-    mainWindow.webContents.openDevTools()
-  }
+    // Open DevTools in development
+    if (process.argv.includes('--dev')) {
+        mainWindow.webContents.openDevTools()
+    }
 }
 
 app.whenReady().then(createWindow)
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit()
-  }
+    if (process.platform !== 'darwin') {
+        app.quit()
+    }
 })
 
 app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow()
-  }
+    if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow()
+    }
 })
 
 // IPC handlers for folder operations
 ipcMain.handle('get-folders', async () => {
-  try {
-    const folders = await runJxa(`
+    try {
+        const folders = await runJxa(`
       const app = Application('Notes');
       const folders = app.folders();
       
@@ -64,24 +64,30 @@ ipcMain.handle('get-folders', async () => {
         };
       });
     `)
-    
-    return { success: true, folders }
-  } catch (error) {
-    console.error('Error fetching folders:', error)
-    return { success: false, error: error.message }
-  }
+
+        return { success: true, folders }
+    } catch (error) {
+        console.error('Error fetching folders:', error)
+        return { success: false, error: error.message }
+    }
 })
 
+function getCacheFilePath(folderName) {
+    const safeFileName = folderName.replace(/[^a-z0-9]/gi, '_').toLowerCase()
+    const cacheFile = `./cache/notes_${safeFileName}.json`
+    return cacheFile
+}
+
 ipcMain.handle('sync-folder', async (event, folderName) => {
-  try {
-    // Send progress updates to renderer
-    const sendProgress = (message) => {
-      event.sender.send('sync-progress', message)
-    }
-    
-    sendProgress(`Starting sync of "${folderName}"...`)
-    
-    const notes = await runJxa(`
+    try {
+        // Send progress updates to renderer
+        const sendProgress = (message) => {
+            event.sender.send('sync-progress', message)
+        }
+
+        sendProgress(`Starting sync of "${folderName}"...`)
+
+        const notes = await runJxa(`
       const app = Application('Notes');
       const folder = app.folders.byName('${folderName}');
       const notes = folder.notes();
@@ -89,6 +95,8 @@ ipcMain.handle('sync-folder', async (event, folderName) => {
       
       const results = [];
       const batchSize = 10;
+
+      console.log("Starting to sync the notes");
       
       for (let i = 0; i < total; i++) {
         try {
@@ -113,104 +121,125 @@ ipcMain.handle('sync-folder', async (event, folderName) => {
       
       return results;
     `)
-    
-    sendProgress('Processing notes...')
-    
-    // Process the notes (extract plain text, format dates, etc.)
-    const processedNotes = notes.map(note => ({
-      ...note,
-      plainText: extractPlainText(note.body),
-      creationDate: new Date(note.creationDate),
-      modificationDate: new Date(note.modificationDate)
-    }))
-    
-    // Save to cache
-    const fs = await import('fs')
-    await fs.promises.mkdir('./cache', { recursive: true })
-    
-    const safeFileName = folderName.replace(/[^a-z0-9]/gi, '_').toLowerCase()
-    const cacheFile = `./cache/notes_${safeFileName}.json`
-    
-    await fs.promises.writeFile(cacheFile, JSON.stringify(processedNotes, null, 2))
-    
-    sendProgress('Sync completed!')
-    
-    return { 
-      success: true, 
-      count: processedNotes.length,
-      cacheFile 
+
+        sendProgress('Processing notes...')
+
+        // Process the notes (extract plain text, format dates, etc.)
+        const processedNotes = notes.map((note) => ({
+            ...note,
+            plainText: extractPlainText(note.body),
+            creationDate: new Date(note.creationDate),
+            modificationDate: new Date(note.modificationDate),
+        }))
+
+        // Save to cache
+        const fs = await import('fs')
+        await fs.promises.mkdir('./cache', { recursive: true })
+
+        const cacheFile = getCacheFilePath(folderName)
+
+        await fs.promises.writeFile(
+            cacheFile,
+            JSON.stringify(processedNotes, null, 2)
+        )
+
+        sendProgress('Sync completed!')
+
+        return {
+            success: true,
+            count: processedNotes.length,
+            cacheFile,
+        }
+    } catch (error) {
+        console.error('Error syncing folder:', error)
+        return { success: false, error: error.message }
     }
-  } catch (error) {
-    console.error('Error syncing folder:', error)
-    return { success: false, error: error.message }
-  }
+})
+
+// Check if any notes have been cached
+ipcMain.handle('has-cached-notes', async (event, folderName) => {
+    try {
+        const fs = await import('fs')
+        console.log(
+            `Checking for folder at path:  ${getCacheFilePath(folderName)}`
+        )
+        const files = await fs.promises.readFile(getCacheFilePath(folderName))
+        return files ? true : false
+    } catch (error) {
+        return false
+    }
 })
 
 // Simple chat handler (will be enhanced with AI later)
 ipcMain.handle('send-chat-message', async (event, message) => {
-  try {
-    // For now, return a simple response
-    // TODO: Implement actual AI chat with vector search
-    
-    // Look for cached notes to provide context
-    const fs = await import('fs')
-    const cacheDir = './cache'
-    
     try {
-      const files = await fs.promises.readdir(cacheDir)
-      const noteFiles = files.filter(file => file.startsWith('notes_') && file.endsWith('.json'))
-      
-      if (noteFiles.length === 0) {
-        return "I don't have any notes to search through yet. Please sync some folders first!"
-      }
-      
-      // Simple keyword search for now
-      const searchTerm = message.toLowerCase()
-      let foundNotes = []
-      
-      for (const file of noteFiles) {
-        const filePath = path.join(cacheDir, file)
-        const data = await fs.promises.readFile(filePath, 'utf-8')
-        const notes = JSON.parse(data)
-        
-        const matches = notes.filter(note => 
-          note.title.toLowerCase().includes(searchTerm) || 
-          note.plainText.toLowerCase().includes(searchTerm)
-        )
-        
-        foundNotes.push(...matches)
-      }
-      
-      if (foundNotes.length === 0) {
-        return `I couldn't find any notes containing "${message}". Try asking about different topics or sync more folders.`
-      }
-      
-      // Return summary of found notes
-      const notesSummary = foundNotes.slice(0, 3).map(note => 
-        `"${note.title}" - ${note.plainText.substring(0, 100)}...`
-      ).join('\n\n')
-      
-      return `I found ${foundNotes.length} notes related to "${message}":\n\n${notesSummary}`
-      
+        // For now, return a simple response
+        // TODO: Implement actual AI chat with vector search
+
+        // Look for cached notes to provide context
+        const fs = await import('fs')
+        const cacheDir = './cache'
+
+        try {
+            const files = await fs.promises.readdir(cacheDir)
+            const noteFiles = files.filter(
+                (file) => file.startsWith('notes_') && file.endsWith('.json')
+            )
+
+            if (noteFiles.length === 0) {
+                return "I don't have any notes to search through yet. Please sync some folders first!"
+            }
+
+            // Simple keyword search for now
+            const searchTerm = message.toLowerCase()
+            let foundNotes = []
+
+            for (const file of noteFiles) {
+                const filePath = path.join(cacheDir, file)
+                const data = await fs.promises.readFile(filePath, 'utf-8')
+                const notes = JSON.parse(data)
+
+                const matches = notes.filter(
+                    (note) =>
+                        note.title.toLowerCase().includes(searchTerm) ||
+                        note.plainText.toLowerCase().includes(searchTerm)
+                )
+
+                foundNotes.push(...matches)
+            }
+
+            if (foundNotes.length === 0) {
+                return `I couldn't find any notes containing "${message}". Try asking about different topics or sync more folders.`
+            }
+
+            // Return summary of found notes
+            const notesSummary = foundNotes
+                .slice(0, 3)
+                .map(
+                    (note) =>
+                        `"${note.title}" - ${note.plainText.substring(0, 100)}...`
+                )
+                .join('\n\n')
+
+            return `I found ${foundNotes.length} notes related to "${message}":\n\n${notesSummary}`
+        } catch (error) {
+            return "I couldn't access the cached notes. Please sync some folders first!"
+        }
     } catch (error) {
-      return "I couldn't access the cached notes. Please sync some folders first!"
+        console.error('Chat error:', error)
+        return 'Sorry, I encountered an error while processing your message.'
     }
-    
-  } catch (error) {
-    console.error('Chat error:', error)
-    return "Sorry, I encountered an error while processing your message."
-  }
 })
 
 function extractPlainText(html) {
-  return html
-    .replace(/<[^>]*>/g, '')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/\s+/g, ' ')
-    .trim()
+    return html
+        .replace(/<[^>]*>/g, '')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/\s+/g, ' ')
+        .trim()
 }
