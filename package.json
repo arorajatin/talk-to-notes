@@ -21,9 +21,10 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "run-jxa": "^3.0.0",
-    "@lancedb/lancedb": "^0.19.1",
-    "ollama": "^0.5.0"
+    "@lancedb/lancedb": "^0.21.1",
+    "node-fetch": "^3.3.2",
+    "ollama": "^0.5.0",
+    "run-jxa": "^3.0.0"
   },
   "build": {
     "appId": "com.example.notes-sync",

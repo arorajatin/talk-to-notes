@@ -2,6 +2,8 @@ import { app, BrowserWindow, ipcMain } from 'electron'
 import path from 'path'
 import { runJxa } from 'run-jxa'
 import { fileURLToPath } from 'url'
+import EmbeddingService from './services/embeddingService.js'
+import VectorStore from './services/vectorStore.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -143,6 +145,40 @@ ipcMain.handle('sync-folder', async (event, folderName) => {
             JSON.stringify(processedNotes, null, 2)
         )
 
+        const embeddingService = new EmbeddingService()
+        const vectorStore = new VectorStore()
+        try {
+            // init necessary services
+            await embeddingService.checkConnection()
+            await vectorStore.initialize()
+
+            const folderExists = await vectorStore.folderExists(folderName)
+            if (folderExists) {
+                sendProgress('Cleaning up existing data...')
+                await vectorStore.removeFolder(folderName)
+            }
+
+            // generate embeddings corresponding to the chunks
+            const allChunks = await embeddingService.processNotes(
+                processedNotes,
+                (progress) => {
+                    sendProgress(
+                        `Generating embeddings: ${progress.percentage}%`
+                    )
+                }
+            )
+
+            sendProgress(`Adding ${allChunks.length} chunks to vector store...`)
+
+            await vectorStore.addChunks(allChunks)
+        } catch (err) {
+            console.error(err)
+            sendProgress(err.message)
+            return {
+                success: false,
+            }
+        }
+
         sendProgress('Sync completed!')
 
         return {
@@ -160,9 +196,6 @@ ipcMain.handle('sync-folder', async (event, folderName) => {
 ipcMain.handle('has-cached-notes', async (event, folderName) => {
     try {
         const fs = await import('fs')
-        console.log(
-            `Checking for folder at path:  ${getCacheFilePath(folderName)}`
-        )
         const files = await fs.promises.readFile(getCacheFilePath(folderName))
         return files ? true : false
     } catch (error) {

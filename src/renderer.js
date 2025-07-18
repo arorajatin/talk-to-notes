@@ -40,11 +40,6 @@ class NotesSync {
                 this.showChatInterface()
             })
 
-        // Main chat button in header
-        document.getElementById('chat-btn').addEventListener('click', () => {
-            this.showChatInterface()
-        })
-
         // Chat interface events
         document
             .getElementById('chat-back-btn')
