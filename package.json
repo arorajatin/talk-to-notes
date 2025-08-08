@@ -1,6 +1,6 @@
 {
     "name": "notes-sync-app",
-    "version": "1.0.0",
+    "version": "0.1.0",
     "description": "Visual interface for Apple Notes folder selection and sync",
     "main": "src/main.js",
     "type": "module",
