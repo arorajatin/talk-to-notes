@@ -78,7 +78,8 @@ ipcMain.handle('get-folders', async () => {
 
 function getCacheFilePath(folderName) {
     const safeFileName = folderName.replace(/[^a-z0-9]/gi, '_').toLowerCase()
-    const cacheFile = `./cache/notes_${safeFileName}.json`
+    const userDataPath = app.getPath('userData')
+    const cacheFile = path.join(userDataPath, 'cache', `notes_${safeFileName}.json`)
     return cacheFile
 }
 
@@ -138,7 +139,9 @@ ipcMain.handle('sync-folder', async (event, folderName) => {
 
         // Save to cache
         const fs = await import('fs')
-        await fs.promises.mkdir('./cache', { recursive: true })
+        const userDataPath = app.getPath('userData')
+        const cacheDir = path.join(userDataPath, 'cache')
+        await fs.promises.mkdir(cacheDir, { recursive: true })
 
         const cacheFile = getCacheFilePath(folderName)
 
@@ -213,7 +216,8 @@ ipcMain.handle('send-chat-message', async (event, message, folderName) => {
 
         // Look for cached notes to provide context
         const fs = await import('fs')
-        const cacheDir = './cache'
+        const userDataPath = app.getPath('userData')
+        const cacheDir = path.join(userDataPath, 'cache')
 
         try {
             // Initialize chat service if not already done

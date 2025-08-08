@@ -6,9 +6,12 @@
     "type": "module",
     "scripts": {
         "build": "bun run electron-builder",
+        "build:mac": "bun run electron-builder --mac",
+        "build:dmg": "bun run electron-builder --mac dmg",
         "dev": "bun run electron src/main.js --dev",
         "start": "bun run electron src/main.js",
-        "pack": "bun run electron-builder --dir"
+        "pack": "bun run electron-builder --dir",
+        "dist": "bun run electron-builder --publish=never"
     },
     "keywords": [
         "electron",
@@ -20,7 +23,7 @@
     "devDependencies": {
         "@types/node": "^20.0.0",
         "electron": "^28.0.0",
-        "electron-builder": "^24.6.4",
+        "electron-builder": "^26.0.12",
         "prettier": "^3.6.2",
         "typescript": "^5.0.0"
     },
@@ -32,18 +35,53 @@
         "uuid": "^9.0.1"
     },
     "build": {
-        "appId": "com.example.notes-sync",
-        "productName": "Notes Sync",
+        "appId": "com.arorjatin.talk-to-notes",
+        "productName": "Talk to Notes",
         "directories": {
             "output": "dist"
         },
         "files": [
             "src/**/*",
-            "node_modules/**/*"
+            "!src/**/*.ts",
+            "node_modules/**/*",
+            "!node_modules/**/*.md",
+            "!node_modules/**/LICENSE*",
+            "!node_modules/**/*.map",
+            "!cache/**/*"
         ],
         "mac": {
-            "target": "dmg",
-            "icon": "assets/icon.icns"
-        }
+            "target": {
+                "target": "dmg",
+                "arch": [
+                    "x64",
+                    "arm64"
+                ]
+            },
+            "category": "public.app-category.productivity",
+            "entitlements": "build/entitlements.mac.plist",
+            "entitlementsInherit": "build/entitlements.mac.plist",
+            "gatekeeperAssess": false,
+            "hardenedRuntime": true
+        },
+        "dmg": {
+            "title": "Talk to Notes",
+            "contents": [
+                {
+                    "x": 130,
+                    "y": 220
+                },
+                {
+                    "x": 410,
+                    "y": 220,
+                    "type": "link",
+                    "path": "/Applications"
+                }
+            ],
+            "window": {
+                "width": 540,
+                "height": 380
+            }
+        },
+        "publish": null
     }
 }
