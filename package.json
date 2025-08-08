@@ -8,6 +8,9 @@
         "build": "bun run electron-builder",
         "build:mac": "bun run electron-builder --mac",
         "build:dmg": "bun run electron-builder --mac dmg",
+        "build:intel": "bun run electron-builder --mac dmg --x64",
+        "build:apple-silicon": "bun run electron-builder --mac dmg --arm64", 
+        "build:universal": "bun run electron-builder --mac dmg --universal",
         "dev": "bun run electron src/main.js --dev",
         "start": "bun run electron src/main.js",
         "pack": "bun run electron-builder --dir",
@@ -29,6 +32,9 @@
     },
     "dependencies": {
         "@lancedb/lancedb": "^0.21.1",
+        "@lancedb/lancedb-darwin-arm64": "^0.21.2",
+        "@lancedb/lancedb-darwin-x64": "0.21.2",
+        "apache-arrow": "18.1.0",
         "node-fetch": "^3.3.2",
         "ollama": "^0.5.0",
         "run-jxa": "^3.0.0",
@@ -50,13 +56,16 @@
             "!cache/**/*"
         ],
         "mac": {
-            "target": {
-                "target": "dmg",
-                "arch": [
-                    "x64",
-                    "arm64"
-                ]
-            },
+            "target": [
+                {
+                    "target": "dmg",
+                    "arch": "x64"
+                },
+                {
+                    "target": "dmg", 
+                    "arch": "arm64"
+                }
+            ],
             "category": "public.app-category.productivity",
             "icon": "assets/icon.icns",
             "entitlements": "build/entitlements.mac.plist",
@@ -64,6 +73,9 @@
             "gatekeeperAssess": false,
             "hardenedRuntime": true
         },
+        "nodeGypRebuild": false,
+        "buildDependenciesFromSource": false,
+        "asar": false,
         "dmg": {
             "title": "Talk to Notes",
             "contents": [

@@ -71,10 +71,15 @@ Talk to Notes is a privacy-first macOS application that syncs with Apple Notes a
 
 2. **Set up Ollama:**
    ```bash
-   # Install Ollama models
-   ollama pull nomic-embed-text    # For embeddings
-   ollama pull gemma2:9b           # For chat (or your preferred model)
+   # Install required models
+   ollama pull nomic-embed-text    # For embeddings (required)
+   ollama pull gpt-oss:20b         # For chat (recommended model)
+   
+   # Start Ollama service (if not already running)
+   ollama serve
    ```
+   
+   **Important**: Make sure Ollama is running locally on `http://127.0.0.1:11434` before using the app.
 
 3. **Run the app:**
    ```bash
@@ -176,15 +181,17 @@ The app works with various Ollama models:
 - `all-minilm` - Lightweight alternative
 
 **Chat Models:**
-- `gemma2:9b` - Balanced performance/quality
-- `llama3.1:8b` - Alternative option
+- `gpt-oss:20b` - **Recommended** - High-quality responses with excellent reasoning
+- `gemma2:9b` - Alternative option with good performance
+- `llama3.1:8b` - Lighter weight alternative
 - `qwen2:7b` - Good for code and technical content
 
 ### Performance Tuning
-- **Chunk Size**: 2,500 characters (optimized for 32k context models)
+- **Chunk Size**: 2,500 characters (optimized for large context models)
 - **Chunk Overlap**: 200 characters for context preservation
 - **Search Results**: Top 10 chunks per query
 - **Context Window**: 30,000 tokens for chat generation
+- **Model Requirements**: `gpt-oss:20b` requires ~12GB RAM for optimal performance
 
 ## 🛠️ Development
 
@@ -227,6 +234,12 @@ Yes! The app works with any Ollama-compatible models. Just pull your preferred m
 
 ### What about Apple Notes formatting?
 Currently, rich formatting is converted to plain text for processing. Markdown support for responses is planned for a future release.
+
+### Ollama not working?
+1. **Check if Ollama is running**: `curl http://127.0.0.1:11434/api/version`
+2. **Verify models are installed**: `ollama list`
+3. **Test model manually**: `ollama run gpt-oss:20b "Hello, how are you?"`
+4. **Check logs**: Look for error messages in the app's console or terminal
 
 ## 📄 License
 
