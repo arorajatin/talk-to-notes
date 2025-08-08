@@ -349,6 +349,17 @@ body {
     flex-direction: column;
 }
 
+/* Active folder indicator in chat */
+.chat-header h3 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    max-width: 70%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .chat-header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
@@ -359,11 +370,6 @@ body {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
-.chat-header h3 {
-    margin: 0;
-    font-size: 20px;
-    font-weight: 600;
-}
 
 .back-btn {
     background: rgba(255, 255, 255, 0.2);

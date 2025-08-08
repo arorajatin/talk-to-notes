@@ -4,11 +4,13 @@ import { runJxa } from 'run-jxa'
 import { fileURLToPath } from 'url'
 import EmbeddingService from './services/embeddingService.js'
 import VectorStore from './services/vectorStore.js'
+import ChatService from './services/chatService.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 let mainWindow = null
+let chatService = null
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -204,7 +206,7 @@ ipcMain.handle('has-cached-notes', async (event, folderName) => {
 })
 
 // Simple chat handler (will be enhanced with AI later)
-ipcMain.handle('send-chat-message', async (event, message) => {
+ipcMain.handle('send-chat-message', async (event, message, folderName) => {
     try {
         // For now, return a simple response
         // TODO: Implement actual AI chat with vector search
@@ -214,48 +216,22 @@ ipcMain.handle('send-chat-message', async (event, message) => {
         const cacheDir = './cache'
 
         try {
-            const files = await fs.promises.readdir(cacheDir)
-            const noteFiles = files.filter(
-                (file) => file.startsWith('notes_') && file.endsWith('.json')
-            )
-
-            if (noteFiles.length === 0) {
-                return "I don't have any notes to search through yet. Please sync some folders first!"
+            // Initialize chat service if not already done
+            if (!chatService) {
+                chatService = new ChatService()
+                await chatService.initialize()
             }
-
-            // Simple keyword search for now
-            const searchTerm = message.toLowerCase()
-            let foundNotes = []
-
-            for (const file of noteFiles) {
-                const filePath = path.join(cacheDir, file)
-                const data = await fs.promises.readFile(filePath, 'utf-8')
-                const notes = JSON.parse(data)
-
-                const matches = notes.filter(
-                    (note) =>
-                        note.title.toLowerCase().includes(searchTerm) ||
-                        note.plainText.toLowerCase().includes(searchTerm)
-                )
-
-                foundNotes.push(...matches)
+            
+            const response = await chatService.chat(message, folderName)
+            
+            // If response is an object with response property, return just the text
+            if (typeof response === 'object' && response.response) {
+                return response.response
             }
-
-            if (foundNotes.length === 0) {
-                return `I couldn't find any notes containing "${message}". Try asking about different topics or sync more folders.`
-            }
-
-            // Return summary of found notes
-            const notesSummary = foundNotes
-                .slice(0, 3)
-                .map(
-                    (note) =>
-                        `"${note.title}" - ${note.plainText.substring(0, 100)}...`
-                )
-                .join('\n\n')
-
-            return `I found ${foundNotes.length} notes related to "${message}":\n\n${notesSummary}`
+            
+            return response
         } catch (error) {
+            console.error('Error reading cached notes:', error)
             return "I couldn't access the cached notes. Please sync some folders first!"
         }
     } catch (error) {

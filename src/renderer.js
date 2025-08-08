@@ -155,6 +155,7 @@ class NotesSync {
         for (const chatBtn of item.querySelectorAll('.chat-btn')) {
             chatBtn.addEventListener('click', (e) => {
                 e.stopPropagation()
+                this.selectFolder(folder)
                 this.showChatInterface()
             })
         }
@@ -269,12 +270,36 @@ class NotesSync {
 
     // Chat Interface Methods
     showChatInterface() {
+        // Ensure a folder is selected
+        if (!this.selectedFolder) {
+            alert(
+                'Please select a folder first to start chatting with your notes.'
+            )
+            return
+        }
+
+        // Update chat header with folder name
+        const chatHeader = document.querySelector(
+            '#chat-interface .chat-header h3'
+        )
+        chatHeader.textContent = `Chat with "${this.selectedFolder.name}" Notes`
+
+        // Clear previous messages and add folder-specific welcome message
+        this.clearChatMessages()
+        this.addWelcomeMessage()
+
         document.getElementById('chat-interface').style.display = 'flex'
         document.getElementById('chat-input').focus()
     }
 
     hideChatInterface() {
         document.getElementById('chat-interface').style.display = 'none'
+
+        // Update folder header to show we're back to folder view
+        const chatHeader = document.querySelector(
+            '#chat-interface .chat-header h3'
+        )
+        chatHeader.textContent = 'Chat with Your Notes'
     }
 
     async sendMessage() {
@@ -282,6 +307,15 @@ class NotesSync {
         const message = input.value.trim()
 
         if (!message) return
+
+        // Ensure we have a selected folder
+        if (!this.selectedFolder) {
+            this.addMessage(
+                'Please select a folder first to chat with your notes.',
+                'assistant'
+            )
+            return
+        }
 
         // Add user message
         this.addMessage(message, 'user')
@@ -292,13 +326,25 @@ class NotesSync {
 
         try {
             // Send message to main process
-            const response = await window.electronAPI.sendChatMessage(message)
+            const response = await window.electronAPI.sendChatMessage(
+                message,
+                this.selectedFolder.name
+            )
 
             // Remove loading indicator
             this.removeMessage(loadingId)
 
             // Add assistant response
-            this.addMessage(response, 'assistant')
+            // Check if response is an object with sources
+            if (typeof response === 'object' && response.response) {
+                this.addMessage(response.response, 'assistant')
+                // Optionally show sources
+                if (response.sources && response.sources.length > 0) {
+                    console.log('Sources used:', response.sources)
+                }
+            } else {
+                this.addMessage(response, 'assistant')
+            }
         } catch (error) {
             // Remove loading indicator
             this.removeMessage(loadingId)
@@ -353,6 +399,22 @@ class NotesSync {
             console.error('Error checking cached notes:', error)
             return false
         }
+    }
+
+    // Clear all messages from chat
+    clearChatMessages() {
+        const messagesContainer = document.getElementById('chat-messages')
+        messagesContainer.innerHTML = ''
+    }
+
+    // Add folder-specific welcome message
+    addWelcomeMessage() {
+        if (!this.selectedFolder) {
+            return
+        }
+
+        const welcomeText = `Hi! I can help you find information from your "${this.selectedFolder.name}" notes. What would you like to know?`
+        this.addMessage(welcomeText, 'assistant')
     }
 }
 

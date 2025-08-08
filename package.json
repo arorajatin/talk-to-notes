@@ -1,44 +1,49 @@
 {
-  "name": "notes-sync-app",
-  "version": "1.0.0",
-  "description": "Visual interface for Apple Notes folder selection and sync",
-  "main": "src/main.js",
-  "type": "module",
-  "scripts": {
-    "build": "bun run electron-builder",
-    "dev": "bun run electron src/main.js --dev",
-    "start": "bun run electron src/main.js",
-    "pack": "bun run electron-builder --dir"
-  },
-  "keywords": ["electron", "apple-notes", "sync"],
-  "author": "Your Name",
-  "license": "MIT",
-  "devDependencies": {
-    "@types/node": "^20.0.0",
-    "electron": "^28.0.0",
-    "electron-builder": "^24.6.4",
-    "prettier": "^3.6.2",
-    "typescript": "^5.0.0"
-  },
-  "dependencies": {
-    "@lancedb/lancedb": "^0.21.1",
-    "node-fetch": "^3.3.2",
-    "ollama": "^0.5.0",
-    "run-jxa": "^3.0.0"
-  },
-  "build": {
-    "appId": "com.example.notes-sync",
-    "productName": "Notes Sync",
-    "directories": {
-      "output": "dist"
+    "name": "notes-sync-app",
+    "version": "1.0.0",
+    "description": "Visual interface for Apple Notes folder selection and sync",
+    "main": "src/main.js",
+    "type": "module",
+    "scripts": {
+        "build": "bun run electron-builder",
+        "dev": "bun run electron src/main.js --dev",
+        "start": "bun run electron src/main.js",
+        "pack": "bun run electron-builder --dir"
     },
-    "files": [
-      "src/**/*",
-      "node_modules/**/*"
+    "keywords": [
+        "electron",
+        "apple-notes",
+        "sync"
     ],
-    "mac": {
-      "target": "dmg",
-      "icon": "assets/icon.icns"
+    "author": "Your Name",
+    "license": "MIT",
+    "devDependencies": {
+        "@types/node": "^20.0.0",
+        "electron": "^28.0.0",
+        "electron-builder": "^24.6.4",
+        "prettier": "^3.6.2",
+        "typescript": "^5.0.0"
+    },
+    "dependencies": {
+        "@lancedb/lancedb": "^0.21.1",
+        "node-fetch": "^3.3.2",
+        "ollama": "^0.5.0",
+        "run-jxa": "^3.0.0",
+        "uuid": "^9.0.1"
+    },
+    "build": {
+        "appId": "com.example.notes-sync",
+        "productName": "Notes Sync",
+        "directories": {
+            "output": "dist"
+        },
+        "files": [
+            "src/**/*",
+            "node_modules/**/*"
+        ],
+        "mac": {
+            "target": "dmg",
+            "icon": "assets/icon.icns"
+        }
     }
-  }
 }

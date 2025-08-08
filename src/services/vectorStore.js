@@ -115,7 +115,7 @@ class VectorStore {
     /**
      * Search for similar chunks using vector similarity
      */
-    async search(queryVector, limit = 10) {
+    async search(queryVector, folderName, limit = 10) {
         if (!this.table) {
             throw new Error('Vector store not initialized')
         }
@@ -123,6 +123,7 @@ class VectorStore {
         try {
             const results = await this.table
                 .search(queryVector)
+                .where(`folder = '${folderName}'`)
                 .limit(limit)
                 .toArray()
 
